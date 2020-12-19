@@ -66,8 +66,8 @@ def FindTicket(inFromSta, inToSta, inDate, inTime, inArrive):
     fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr = GetRequiredFareDetails(cheapestDetails) # get printable fare details
     
     # return details and URL
-    return"\nYou will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString), URL
+    return fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL
     
 
-#ticketDetails, URL = FindTicket("norwich", "London", "080121", "1200", True)
-#print(ticketDetails)
+#fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = FindTicket("norwich", "London", "080121", "1200", True)
+#print("\nYou will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString), )
