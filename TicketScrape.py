@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-import time
-import webbrowser
-
 
 # this function turns the passed in data into the correct format for webscraping
 def SanitizeInput(fromSta, toSta, travelDate, travelTime, arriveDepart):
@@ -72,5 +69,5 @@ def FindTicket(inFromSta, inToSta, inDate, inTime, inArrive):
     return"\nYou will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString), URL
     
 
-ticketDetails, URL = FindTicket("norwich", "London", "080121", "1200", True)
-print(ticketDetails)
+#ticketDetails, URL = FindTicket("norwich", "London", "080121", "1200", True)
+#print(ticketDetails)
