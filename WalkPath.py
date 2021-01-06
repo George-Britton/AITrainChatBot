@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from requests_html import AsyncHTMLSession
 import requests
 import re
 
@@ -17,8 +18,15 @@ Arr = toSta.replace(" ", "+")
 
 URL = "https://www.google.com/maps/dir/%s/%s" % (Dep, Arr)
 
-response = requests.get(URL)
+session = AsyncHTMLSession()
 
-soup = BeautifulSoup(response.content, 'lxml')
+async def get_URL():
+    response = await asession.get(URL)
 
-print(soup)
+response.html.render()
+
+soup = BeautifulSoup(response.html.html, 'html')
+
+images = soup.findAll('a')
+
+print(images)
