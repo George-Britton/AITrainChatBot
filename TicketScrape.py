@@ -125,8 +125,8 @@ def FindTicket(inFromSta, inToSta, inDate, inReturn=False, inRetDate="tomorrow",
     cheapestDetails, costString = GetCheapestFareDetailsFromWebpage(soup, inReturn) # get cheapest fare details and cost
     if inReturn:
         outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime = GetRequiredReturnFareDetails(cheapestDetails)
-        return outFromSta, outToSta, outDepTime, outArrTime, costString, URL
-        # return outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL
+        # return outFromSta, outToSta, outDepTime, outArrTime, costString, URL
+        return outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL
     else:
         fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr = GetRequiredSingleFareDetails(cheapestDetails) # get printable fare details
         # return details and URL
