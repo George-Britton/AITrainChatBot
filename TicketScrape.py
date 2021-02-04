@@ -116,11 +116,11 @@ def AddReturn(inRetDate, inRetTime, inRetArrive):
 #fromSta = the departure station, toSta = the arrival station, inDate = the date of travel (DDMMYY),
 #inTime = the time of travel (24hr), inArrive = bool true if time is desired arrival time, false if time is desired departure time
 def FindTicket(inFromSta, inToSta, inDate, inReturn=False, inRetDate="tomorrow", inTime="1200", inArrive=True, inRetTime="1200", inRetArrive=True):
-    fromSta, toSta, travelDate, travelTime, arriveDepart, inRetDate = SanitizeInput(inFromSta, inToSta, inDate, inTime, inArrive, inRetDate) # cleanse the webscraping parameters
+    fromSta, toSta, travelDate, travelTime, arriveDepart, returnDate = SanitizeInput(inFromSta, inToSta, inDate, inTime, inArrive, inRetDate) # cleanse the webscraping parameters
     URL = "https://ojp.nationalrail.co.uk/service/timesandfares/%s/%s/%s/%s/%s" % (fromSta, toSta, travelDate, travelTime, arriveDepart) # create the webscraping link
     # adds the return details if the user wants a return ticket
     if inReturn:
-        URL += AddReturn(inRetDate, inRetTime, inRetArrive)
+        URL += AddReturn(returnDate, inRetTime, inRetArrive)
     soup = ScrapeWeb(URL) # get parsed webpage
     cheapestDetails, costString = GetCheapestFareDetailsFromWebpage(soup, inReturn) # get cheapest fare details and cost
     if inReturn:
