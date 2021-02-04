@@ -276,8 +276,8 @@ def getBooking(num,ucomm):     #Function to handle booking related queries
                     month_number = '0' + month_number
                 rtdate = date[:2] + '.' + str(month_number) + '.' + '2020'
         
-        fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = TicketScrape.FindTicket(souc,dest,trdate,True,rtdate)
-        ret = "You will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s and returning on %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, rtdate, costString)
+        outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL = TicketScrape.FindTicket(souc,dest,trdate,True,rtdate)
+        ret = "You will be leaving from %s (%s) to %s (%s) at %s, and arriving at %s. Your return trip will be from %s (%s), to %s (%s) at %s, arriving at %s. The cost will be %s" % (outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString)
         booking = False
         counter = 0
         return ret, URL
