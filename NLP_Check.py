@@ -1,7 +1,7 @@
 import datetime
 import csv
 import nltk 
-import PyPDF2
+# from datetime import datetime
 import re
 import TicketScrape
 from nltk.corpus import stopwords, wordnet
@@ -11,13 +11,20 @@ from time import strptime
 from chatterbot import ChatBot
 from chatterbot.trainers import ListTrainer
 from chatterbot.trainers import ChatterBotCorpusTrainer
+#Importing modules for prediction
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+from sklearn.model_selection import train_test_split
 # path = 'C:/Users/ajd_r/Source/Repos/Ai Chatbot/response.txt'
 # responses_file = open(path, 'r+')
 chatbot = ChatBot('trainBot')
 # trainer = ListTrainer(chatbot)
 
 trainer = ChatterBotCorpusTrainer(chatbot)
-trainer.train("chatterbot.corpus.english")
+# trainer.train("chatterbot.corpus.english")
+trainer.train("chatterbot.corpus.english.greetings",
+              "chatterbot.corpus.english.conversations")
 book_list = []
 for syn in wordnet.synsets("booking"): 
     for lemm in syn.lemmas(): 
@@ -28,12 +35,28 @@ for syn in wordnet.synsets("contingency"):
     for lemm in syn.lemmas(): 
         cont_list.append(lemm.name())
 
+delay_list = []
+for syn in wordnet.synsets("delay"): 
+    for lemm in syn.lemmas(): 
+        delay_list.append(lemm.name())
+
 counter = 0
 stvalid = False
+stations = {"NRW" : "Norwich", "DIS" : "Diss", "SMK" : "Stowmarket", "IPS" : "Ipswich", "MNG" : "Manningtree", "COL" : "Colchester"}
+data = pd.read_csv("Value set.csv")
+
+X = data.iloc[:,[2]].values
+y = data.iloc[:,[ 3]].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
 
 stop_words = set(stopwords.words('english')) 
 global booking, souc, dest, trdate, cntg_flag
 booking = False
+delay_f = False
 cntg_flag = False
 def getTag(txt):
     tokenized = sent_tokenize(txt) 
@@ -72,7 +95,7 @@ def getNum(txt):                #Getting Numbers
             return(t[0])
 
 def getResp(num,ucomm):        #Function to be called from UI to get response
-    global booking, souc, dest, trdate, counter, cntg_flag
+    global booking, souc, dest, trdate, counter, cntg_flag, delay_f
 # Get booking Syntaxes
     trbk = [ele for ele in book_list if(ele in ucomm)]
     if trbk or booking == True:
@@ -83,6 +106,16 @@ def getResp(num,ucomm):        #Function to be called from UI to get response
         URL = res[1]
         return ret, URL  
     
+    dely = [ele for ele in delay_list if(ele in ucomm)]
+    if dely or delay_f == True:
+        delay_f = True
+        res = getDelay(ucomm)
+        ret = res[0]
+        URL = res[1]
+        return ret, URL 
+
+        # res = getDelay(ucomm)
+
     cntg = [ele for ele in cont_list if(ele in ucomm)]
     if cntg or cntg_flag == True:
         cntg_flag = True
@@ -95,9 +128,73 @@ def getResp(num,ucomm):        #Function to be called from UI to get response
     ret = str(chatbot.get_response(ucomm))
     return ret, None
 
-def getContingency(ucomm):
-    global counter, cntg_flag, event, v1, v2, v3
+def getDelay(ucomm):
+    global counter, delay_f, event, v1, v2, v3
     URL = ''
+    if counter == 0:
+        ret = 'Hi, my name is delayBot. Sorry to hear that your train has been delayed. Please let me know Station name you just arrived.'
+        counter += 1
+        return ret, None
+    elif counter == 1:
+        v1 = getName(ucomm)
+        stvalid = validateStation(v1)
+        if stvalid:
+            ret = "And what is name of your destination station?"
+            counter += 1
+            return ret , URL
+        else:
+            ret = 'Please Enter a valid station name'
+            return ret , URL
+    elif counter == 2:
+        v2 = getName(ucomm)
+        stvalid = validateStation(v2)
+        if stvalid:
+            ret = "How many minutes has it been delayed?"
+            counter += 1
+            return ret , URL
+        else:
+            ret = 'Please Enter a valid station name'
+            return ret , URL
+    elif counter == 3:
+        v3 = getNum(ucomm)
+        v4 = float(v3)
+        end_delay = getDelayedTime(v1,v2,v4)
+        v5 = end_delay[0][0]
+        v5 = int(v5)
+        ret = (f"You will reach {v2}, {v5} minutes late")
+        delay_f = False
+        counter = 0
+        ret = str(ret)
+        return ret, URL
+
+def getDelayedTime(v1,v2,v3):
+    global stations, regressor
+    feed = np.array([[v3]])
+    co = 0
+    pred = v3
+    stations_inbet = 0
+    for s in stations:
+        if stations[s] == v1:
+            co += 1
+        if stations[s] == v2:
+            stations_inbet = co
+            co = 0
+        if co >= 1:
+            co += 1
+    c2 = 0
+    while c2 < stations_inbet:
+        pred = regressor.predict(feed)
+        feed[0][0] = pred
+        c2 += 1
+    
+    return pred
+
+def getContingency(ucomm):
+    global counter, cntg_flag, event, v1, v2, v3, v4
+    URL = ''
+    roles = {"Instructions to Signallers/Controllers":2, "Operational Resources Required":3, "Critical Infrastructure":4, "Customer Service Staff Deployment":5, 
+            "Alternative Transport":6, "Customer Message":7, "Internal Message to include":8, "Electronic Information (Whiteboard, website, social media)":9}
+    v4 = 0
     if counter == 0:
         ret = 'Hi, my name is staffBot. I can help you dealing with contingencies. Please let me know Station name you just left.'
         counter += 1
@@ -133,20 +230,33 @@ def getContingency(ucomm):
             ret = 'What type of blockage are you facing?(Partial/Full)'
             return ret , URL
         v3 = v3.title()
-        # searc = v3 + " Line Blockage Between " + v1 + " & " + v2
+        ret = "What information do you need? Choose from below, either type in the number or type the full description as you see.\n"
+        rl = str(roles)
+        rl = rl.replace("," , "\n")
+        ret = ret + rl
+        counter += 1
+        return ret , URL
+    elif counter == 4:
+        try:
+            v4 = int(ucomm)
+        except ValueError:
+            v4 = roles[ucomm]
+        v4 = int(v4)
         searc = (f"{v3} Line Blockage Between {v1} & {v2}")
-        pdf_file = open('D3_AICC_05 Contingency Plan Manual.pdf', 'rb')
-        fileReader = PyPDF2.PdfFileReader(pdf_file)
-        number_of_pages = fileReader.getNumPages()
+        owing = v3 + " Line Blockage"
         txtnew = ""
-        for i in range(9, number_of_pages):
-            PageObj = fileReader.getPage(i)
-            Text = PageObj.extractText() 
-            ResSearch = re.search(searc, Text)
-            if ResSearch:
-                txtnew = txtnew + Text.strip('\n')
-                # print("this is page " + str(i)) 
-                # print(Text)
+        now = datetime.datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        with open('CM_chk.csv', 'rt') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                Text = row[1]
+                ResSearch = re.search(searc, Text)
+                if ResSearch:
+                    txtnew = row[v4]
+                    txtnew = txtnew.replace("{xxx}" , owing)
+                    txtnew = txtnew.replace("xxx" , owing)
+                    txtnew = txtnew.replace("xx:xx", current_time)
         if txtnew == "":
             ret = "Could not find any contingency plan"
         else:
@@ -236,7 +346,7 @@ def getBooking(num,ucomm):     #Function to handle booking related queries
     elif counter == 5:
         if 'no' in ucomm:
             fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = TicketScrape.FindTicket(souc,dest,trdate)
-            ret = "You will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString)
+            ret = (f"You will be travelling from {fromStr} ({fromAbr}) to {toStr} ({toAbr}), leaving at {depTimeStr}, and arriving at {arrTimeStr}. The price will be {costString}")
             booking = False
             counter = 0
             return ret, URL
@@ -276,8 +386,8 @@ def getBooking(num,ucomm):     #Function to handle booking related queries
                     month_number = '0' + month_number
                 rtdate = date[:2] + '.' + str(month_number) + '.' + '2020'
         
-        outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL = TicketScrape.FindTicket(souc,dest,trdate,True,rtdate)
-        ret = "You will be leaving from %s (%s) to %s (%s) at %s, and arriving at %s. Your return trip will be from %s (%s), to %s (%s) at %s, arriving at %s. The cost will be %s" % (outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString)
+        fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = TicketScrape.FindTicket(souc,dest,trdate,True,rtdate)
+        ret = (f"You will be travelling from {fromStr} ({fromAbr}) to {toStr} ({toAbr}), leaving at {depTimeStr}, and arriving at {arrTimeStr} and returning on {rtdate}. The price will be {costString}")
         booking = False
         counter = 0
         return ret, URL
