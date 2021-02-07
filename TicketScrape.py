@@ -39,35 +39,28 @@ def GetCheapestSingleFareCost(cheapestFare):
 
 # get the monetary cost of the cheapest found fare for a return
 def GetCheapestReturnFareCost(cheapestFare):
-    outCostWithDebris = cheapestFare[0].find_all("label", class_="opreturn")[-1]
-    outCostRaw = str(outCostWithDebris).split("£")[-1]
-    outCost = outCostRaw.split("<")[0]
-    backCostWithDebris = cheapestFare[1].find_all("label", class_="opreturn")[-1]
-    backCostRaw = str(backCostWithDebris).split("£")[-1]
-    backCost = backCostRaw.split("<")[0]
-    outCostPence = int(re.sub(r'[^0-9]', '', outCost))
-    backCostPence = int(re.sub(r'[^0-9]', '', backCost))
-    totalCostPence = str(outCostPence + backCostPence)
-    costString = "£" + totalCostPence[0:-2] + "." + totalCostPence[-2:-1]
-    if len(costString.split(".")[-1]) == 1:
-        costString += "0"
+    rawCostList = str(cheapestFare).split(" ") # split up the soup to isolate the cost
+    costString = rawCostList[rawCostList.index("£") + 1].split("\\")[-1] # find the cost index
+    costString = costString[0:5] # isolate cost
+    costString = "£" + costString # add pound sign
     return costString
 
 
 # get a list of the details of the cheapest fare
 def GetCheapestFareDetailsFromWebpage(soup, isReturn):
     if isReturn:
-        cheapestFare = soup.find_all('td', class_="fare has-cheapest") # find the cheapest fare
-        costString = GetCheapestReturnFareCost(cheapestFare)
-        cheapestOutDetails = cheapestFare[0].find("script")
-        cheapestBackDetails = cheapestFare[1].find("script")
-        cheapestDetailsString = str(cheapestOutDetails) + str(cheapestBackDetails)
+        cheapestFare = soup.find_all('td', class_="fare has-cheapest") # find the cheapest fare details
+        costFinder = soup.find_all('button', class_="b-y lrg not-IE6") # find the cheapest fare cost
+        costString = GetCheapestReturnFareCost(costFinder) # get the fare cost
+        cheapestOutDetails = cheapestFare[0].find("script") # get the outward details
+        cheapestBackDetails = cheapestFare[0].find("script") # get the return details
+        cheapestDetailsString = str(cheapestOutDetails) + str(cheapestBackDetails) # concatonate details
     else:
         cheapestFare = soup.find('td', class_="fare has-cheapest") # find the cheapest fare
         inputs = cheapestFare.find_all('input') # get display data
         cheapestDetails = inputs[-1] # cleanse display data
         cheapestDetailsString = str(cheapestDetails).split("|") # separate display data
-        costString = GetCheapestSingleFareCost(cheapestFare)
+        costString = GetCheapestSingleFareCost(cheapestFare) # get the fare cost
     return cheapestDetailsString, costString
     
 
@@ -88,18 +81,19 @@ def GetRequiredReturnFareDetails(cheapestDetails):
     for item in cheapestDetailsList:
         if ',' in item or ':' in item or '(' in item or ')' in item or '/' in item or '\\' in item:
             cheapestDetailsList.remove(item)
-    outFromSta = cheapestDetailsList[6] # get outward from station
-    outFromStaAbr = cheapestDetailsList[8] # get outward from station abbreviation
-    outToSta = cheapestDetailsList[10] # get outward to station
-    outToStaAbr = cheapestDetailsList[12] # get outward to station abbreviation
-    outDepTime = cheapestDetailsList[15] # get outward departure time
-    outArrTime = cheapestDetailsList[17] # get outward arrival time
-    backFromSta = cheapestDetailsList[68] # get return from station
-    backFromStaAbr = cheapestDetailsList[70] # get return from station abbreviation
-    backToSta = cheapestDetailsList[72] # get return to station
-    backToStaAbr = cheapestDetailsList[74] # get return to station abbreviation
-    backDepTime = cheapestDetailsList[77] # get return departure time
-    backArrTime = cheapestDetailsList[79] # get return arrival time
+    outFromSta = cheapestDetailsList[cheapestDetailsList.index('departureStationName') + 1] # get outward from station
+    outFromStaAbr = cheapestDetailsList[cheapestDetailsList.index('departureStationCRS') + 1] # get outward from station abbreviation
+    outToSta = cheapestDetailsList[cheapestDetailsList.index('arrivalStationName') + 1] # get outward to station
+    outToStaAbr = cheapestDetailsList[cheapestDetailsList.index('arrivalStationCRS') + 1] # get outward to station abbreviation
+    outDepTime = cheapestDetailsList[cheapestDetailsList.index('departureTime') + 1] # get outward departure time
+    outArrTime = cheapestDetailsList[cheapestDetailsList.index('arrivalTime') + 1] # get outward arrival time
+    del cheapestDetailsList[0:20]
+    backFromSta = cheapestDetailsList[cheapestDetailsList.index('departureStationName') + 1] # get return from station
+    backFromStaAbr = cheapestDetailsList[cheapestDetailsList.index('departureStationCRS') + 1] # get return from station abbreviation
+    backToSta = cheapestDetailsList[cheapestDetailsList.index('arrivalStationName') + 1] # get return to station
+    backToStaAbr = cheapestDetailsList[cheapestDetailsList.index('arrivalStationCRS') + 1] # get return to station abbreviation
+    backDepTime = cheapestDetailsList[cheapestDetailsList.index('departureTime') + 1] # get return departure time
+    backArrTime = cheapestDetailsList[cheapestDetailsList.index('arrivalTime') + 1] # get return arrival time
     return outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime
 
 
@@ -142,11 +136,11 @@ def FindTicket(inFromSta, inToSta, inDate, inReturn=False, inRetDate="tomorrow",
 ##
 #
 # SINGLE
-# fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = FindTicket("norwich", "London", "tomorrow", "1200", True, False)
+# fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString, URL = FindTicket("manchester", "derby", "tomorrow")
 # print("\nYou will be travelling from %s (%s) to %s (%s), leaving at %s, and arriving at %s. The price will be %s" % (fromStr, fromAbr, toStr, toAbr, depTimeStr, arrTimeStr, costString))
 # print("\n", URL)
 
 # RETURN
-# outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL = FindTicket("norwich", "London", "tomorrow", True, "05032021", "1200", True, "1200", True)
+# outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString, URL = FindTicket("norwich", "ipswich", "tomorrow", True, "05032021", "1200", True, "1200", True)
 # print("You will be leaving from %s (%s) to %s (%s) at %s, and arriving at %s. Your return trip will be from %s (%s), to %s (%s) at %s, arriving at %s. The cost will be %s" % (outFromSta, outFromStaAbr, outToSta, outToStaAbr, outDepTime, outArrTime, backFromSta, backFromStaAbr, backToSta, backToStaAbr, backDepTime, backArrTime, costString))
 # print("\n", URL)
